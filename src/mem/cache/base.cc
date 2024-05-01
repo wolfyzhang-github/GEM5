@@ -144,33 +144,39 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
     if (compressor)
         compressor->setCache(this);
 
-    registerExitCallback([this]() {
-        // append mode
-        std::ofstream out("cache_lines_dump.txt", std::ios::app);
-        out << "Cache Line Dump\n";
-        out << "cacheLevel is " << cacheLevel << "\n";
+    if (cacheLevel) {
+        registerExitCallback([this]() {
+            static bool firstRun = true;
+            std::ofstream out("cache_lines_dump.txt", firstRun ? std::ios::trunc : std::ios::app);
+            firstRun = false;
 
-        const size_t cacheLineSize = 64;
-
-        tags->forEachBlk([&](CacheBlk &blk) {
-            // addr
-            Addr blkAddr = regenerateBlkAddr(&blk);
-            out << "Block Address: " << std::hex << blkAddr << "\n";
-
-            // data
-            if (blk.data != nullptr) {
-                out << "Data: ";
-                for (size_t i = 0; i < cacheLineSize; ++i) {
-                    out << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(blk.data[i]) << " ";
-                }
-                out << "\n";
-            } else {
-                out << "Data: nullptr\n";
+            if (!out) {
+                std::cerr << "Error opening file for cache line dump.\n";
+                return;
             }
-        });
 
-        out.close();
-    });
+            out << "==================== Cache Line Dump ====================\n"
+                << "Cache Level: " << cacheLevel << "\n"
+                << "=========================================================\n";
+
+            tags->forEachBlk([&](auto& blk) {
+                out << "--- Block Address: " << std::hex << regenerateBlkAddr(&blk) << " ---\n";
+
+                if (blk.data) {
+                    for (size_t i = 0; i < blkSize; ++i) {
+                        if (i % 16 == 0) out << "\n[" << std::setw(2) << i << "]: ";
+                        out << std::hex << std::setfill('0') << std::setw(2) << static_cast<int>(blk.data[i]) << " ";
+                    }
+                    out << "\n";
+                } else {
+                    out << "Data: nullptr\n";
+                }
+                out << "---------------------------------------------------------\n";
+            });
+
+            out.close();
+        });
+    }
 
     if (dumpMissPC && cacheLevel) {
         registerExitCallback([this]() {
