@@ -113,6 +113,14 @@ class BRRIP : public Base
     const unsigned btp;
 
   public:
+    SatCounter8 getRRPV(const std::shared_ptr<ReplacementData>& replacement_data) const {
+      // auto brrip_data = std::dynamic_pointer_cast<const BRRIPReplData>(replacement_data);
+      // if (brrip_data) {
+      //     return brrip_data->rrpv;
+      // }
+      return SatCounter8(0);
+    }
+
     typedef BRRIPRPParams Params;
     BRRIP(const Params &p);
     ~BRRIP() = default;

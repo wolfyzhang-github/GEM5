@@ -64,6 +64,16 @@ class FIFO : public Base
     };
 
   public:
+    Tick getTickInserted(const std::shared_ptr<ReplacementData>& replacement_data) const {
+      if (!replacement_data) return 0;
+
+      // auto fifo_data = std::dynamic_pointer_cast<const FIFOReplData>(replacement_data);
+      // if (fifo_data) {
+      //     return fifo_data->tickInserted;
+      // }
+      return 0;
+    }
+
     typedef FIFORPParams Params;
     FIFO(const Params &p);
     ~FIFO() = default;

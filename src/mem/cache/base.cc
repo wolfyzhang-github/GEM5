@@ -61,6 +61,8 @@
 #include "mem/cache/mshr.hh"
 #include "mem/cache/prefetch/base.hh"
 #include "mem/cache/queue_entry.hh"
+#include "mem/cache/replacement_policies/fifo_rp.hh"
+#include "mem/cache/replacement_policies/lru_rp.hh"
 #include "mem/cache/tags/compressed_tags.hh"
 #include "mem/cache/tags/super_blk.hh"
 #include "params/BaseCache.hh"
@@ -176,6 +178,65 @@ BaseCache::BaseCache(const BaseCacheParams &p, unsigned blk_size)
 
             out.close();
         });
+    }
+
+    struct CacheLineInfo
+    {
+        uint64_t address;
+        uint64_t metric;
+
+        CacheLineInfo(uint64_t addr, uint64_t met) : address(addr), metric(met) {}
+
+        static bool compare(const CacheLineInfo& a, const CacheLineInfo& b) {
+            return a.metric < b.metric;
+        }
+    };
+
+    if (cacheLevel) {
+        static bool executed = false;
+        if (!executed) {
+            executed = true;
+
+            registerExitCallback([this]() {
+                std::ofstream out("cache_lines_sorted_dump.txt", std::ios::trunc);
+                if (!out) {
+                    std::cerr << "Error opening file for sorted cache line dump.\n";
+                    return;
+                }
+
+                std::vector<CacheLineInfo> cacheLines;
+
+                tags->forEachBlk([&](auto& blk) {
+                    uint64_t addr = regenerateBlkAddr(&blk);
+                    uint64_t metric = 0;
+
+                    // auto strategyType = blk.replacementData->strategyType;
+
+                    // if ( /* strategyType == "LRU" */ ) {
+                    //     metric = lruStrategy.getLastTouchTick(blk.replacementData);
+                    // } else if ( /* strategyType == "FIFORP" */ ) {
+                    //     metric = fifoStrategy.getTickInserted(blk.replacementData);
+                    // } else if ( /* strategyType == "DRRIPRP" */ ) {
+                    //     if (drripStrategy.getMaxSelected())
+                    //         metric = brripStrategy.getRRPV(blk.replacementData);
+                    //     } else {
+                    //         metric = rripStrategy.getRRPV(blk.replacementData);
+                    //     }
+                    // }
+
+                    cacheLines.emplace_back(addr, metric);
+                });
+
+                std::sort(cacheLines.begin(), cacheLines.end(), CacheLineInfo::compare);
+
+                for (const auto& line : cacheLines) {
+                    out << "Address: " << std::hex << line.address
+                        << ", Metric: " << std::dec << line.metric << "\n";
+                }
+
+                out.close();
+            });
+        }
     }
 
     if (dumpMissPC && cacheLevel) {

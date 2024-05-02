@@ -94,6 +94,13 @@ class Dueling : public Base
     } duelingStats;
 
   public:
+    // auto getMaxSelected() const -> decltype(duelingStats.selectedA) {
+    //     auto valueA = duelingStats.selectedA;
+    //     auto valueB = duelingStats.selectedB;
+
+    //     return (valueA > valueB) ? valueA : valueB;
+    // }
+
     PARAMS(DuelingRP);
     Dueling(const Params &p);
     ~Dueling() = default;

@@ -66,6 +66,16 @@ class LRU : public Base
     LRU(const Params &p);
     ~LRU() = default;
 
+    Tick getLastTouchTick(const std::shared_ptr<ReplacementData>& replacement_data) const {
+        if (!replacement_data) return 0;
+
+        // auto lru_data = std::dynamic_pointer_cast<const LRUReplData>(replacement_data);
+        // if (lru_data) {
+        //     return lru_data->lastTouchTick;
+        // }
+        return 0;
+    }
+
     /**
      * Invalidate replacement data to set it as the next probable victim.
      * Sets its last touch tick as the starting tick.
